@@ -1,6 +1,26 @@
 function [image] = POCS_Func(kspace, mask)
 
- [kx, ky] = size(kspace);
+[kx, ky] = size(kspace);
+%% Partial Fourier Sampling Reconstruction
+    mask = sum(mask,1);
+    zf_size = sum(mask==0); % Size of zero-filled region    
+    sym_ind = zf_size + 1: ky-zf_size;  %Index of Symmetric Region
+    zf_ind = 1:zf_size;           %Index of Assymetric region, not including symetric region
+    asym_ind = ky-zf_size+1:ky;
+ for iter =1:1:50
+ %% Find Phase from ACS
+    kdata_lr = kspace; %Low-Res k-space data
+    kdata_lr(:,[asym_ind zf_ind],:,:,:) = 0;
+    Phi = exp(1j*angle(ifft2c(kdata_lr))); %Phase of low-res image
+    image = (Phi.*abs(ifft2c(kspace)));
+    Recon_Kspace = fft2c(image);
+    kspace(:,zf_ind) = Recon_Kspace(:,zf_ind);  %% Keep under-sampled/zero-filled indeces data only
+ end
+ 
+ 
+ 
+ 
+%% GRAPPA Sampling Reconstruction
  %% Find ACS (Symmetric) region Index
  x = mask(1,:); % Pick any phase encode
  f = find(diff([0,x,0]==1));
